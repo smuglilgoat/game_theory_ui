@@ -14,7 +14,7 @@
    <string>Game Theory - Project</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>10</x>
@@ -55,34 +55,43 @@
      <height>26</height>
     </rect>
    </property>
-   <widget class="QMenu" name="menuFile">
+   <widget class="QMenu" name="menuNew_Game">
     <property name="title">
-     <string>File</string>
+     <string>New Game</string>
     </property>
-    <widget class="QMenu" name="menuNew_Game">
-     <property name="title">
-      <string>New Game</string>
-     </property>
-     <addaction name="actionPure"/>
-     <addaction name="actionMixed"/>
-    </widget>
-    <addaction name="menuNew_Game"/>
-    <addaction name="actionQuit"/>
+    <addaction name="actionNGPure"/>
+    <addaction name="actionNGMixed"/>
    </widget>
-   <addaction name="menuFile"/>
+   <widget class="QMenu" name="menuOpen_CSV">
+    <property name="title">
+     <string>Open CSV</string>
+    </property>
+    <addaction name="actionRPure"/>
+    <addaction name="actionRMixed"/>
+   </widget>
+   <addaction name="menuNew_Game"/>
+   <addaction name="menuOpen_CSV"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <action name="actionQuit">
-   <property name="text">
-    <string>Quit</string>
-   </property>
-  </action>
-  <action name="actionPure">
+  <action name="actionNGPure">
    <property name="text">
     <string>Pure</string>
    </property>
   </action>
-  <action name="actionMixed">
+  <action name="actionNGMixed">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Mixed</string>
+   </property>
+  </action>
+  <action name="actionRPure">
+   <property name="text">
+    <string>Pure</string>
+   </property>
+  </action>
+  <action name="actionRMixed">
    <property name="enabled">
     <bool>false</bool>
    </property>
