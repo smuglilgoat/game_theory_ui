@@ -2,6 +2,8 @@ import sys
 import numpy as np
 import pandas as pd
 import itertools
+import tkinter as tk
+from tkinter import filedialog
 
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtWidgets import QApplication, QDialog, QMainWindow, QPushButton
@@ -20,6 +22,7 @@ class Window(QMainWindow):
         loadUi("main.ui", self)
         # Connecting buttons with there function
         self.actionNGPure.triggered.connect(self.onNGPureActnTrggrd)
+        self.actionRPure.triggered.connect(self.onRPureActnTrggrd)
 
     # Create a slot for launching the player strategies dialog
     def onNGPureActnTrggrd(self):
@@ -27,9 +30,61 @@ class Window(QMainWindow):
         dlg = PlayerStarts(self)
         dlg.exec()
 
+    def onRPureActnTrggrd(self):
+        root = tk.Tk()
+        root.withdraw()
+
+        file_path = filedialog.askopenfilename()
+        print("# Reading file:", file_path)
+        dlg = CSVAnalysis(self)
+        dlg.fileHandler(file_path)
+        dlg.exec()
+
+class PandasModel(QtCore.QAbstractTableModel):
+    """
+    Class to populate a table view with a pandas dataframe
+    """
+    def __init__(self, data, parent=None):
+        QtCore.QAbstractTableModel.__init__(self, parent)
+        self._data = data
+
+    def rowCount(self, parent=None):
+        return len(self._data.values)
+
+    def columnCount(self, parent=None):
+        return self._data.columns.size
+
+    def data(self, index, role=QtCore.Qt.DisplayRole):
+        if index.isValid():
+            if role == QtCore.Qt.DisplayRole:
+                return str(self._data.values[index.row()][index.column()])
+        return None
+
+    def headerData(self, col, orientation, role):
+        if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
+            return self._data.columns[col]
+        return None
+
+class CSVAnalysis(QDialog):
+    """CSVAnalysis dialog."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        # Load the dialog's GUI
+        loadUi("csvreader.ui", self)
+        # Connecting buttons with there function
+
+    def fileHandler(self, file_path):
+        self.textBrowser.append("# Reading file: " + file_path)
+        data = pd.read_csv(file_path)
+        dataNPArray = data.to_numpy()
+        print(data)
+        print(dataNPArray)
+        model = PandasModel(data)
+        self.tableView.setModel(model)
+
 
 class PlayerStarts(QDialog):
-    """Employee dialog."""
+    """PlayerStrat dialog."""
     def __init__(self, parent=None):
         super().__init__(parent)
         # Load the dialog's GUI
@@ -45,18 +100,25 @@ class PlayerStarts(QDialog):
         global numPlayers
         global playersStrats
 
+        winWidth = self.frameGeometry().width()
+        winHeight = self.frameGeometry().height()
         numPlayers = numPlayers + 1
         print("#    Adding players... ", "(Total =", numPlayers, ")")
         playersStrats = np.append(playersStrats, 2)
         print("playersStrats = ", playersStrats)
-        self.newLabel = QtWidgets.QLabel(self.gridLayoutWidget)
+        self.newLabel = QtWidgets.QLabel()
         self.newLabel.setObjectName(("label_" + str(numPlayers + 1)))
         self.newLabel.setText("Player " + str(numPlayers))
-        self.newPlayerStrat = QtWidgets.QLineEdit(self.gridLayoutWidget)
+        self.newPlayerStrat = QtWidgets.QLineEdit()
         self.newPlayerStrat.setObjectName("playerStrats_" + str(numPlayers))
         self.newPlayerStrat.setText('2')
         self.formLayout.addRow(self.newLabel, self.newPlayerStrat)
         stratInputs.append(self.newPlayerStrat)
+        self.generateButton.setGeometry(QtCore.QRect(11, self.generateButton.y() + 22, 151, 28))
+        self.addPlayerButton.setGeometry(QtCore.QRect(11, self.addPlayerButton.y() + 22, 151, 28))
+        self.line_2.setGeometry(QtCore.QRect(11, self.line_2.y() + 22, 151, 20))
+        self.layoutWidget.setGeometry(QtCore.QRect(10, 50, 151, self.layoutWidget.height() + 22))
+        self.resize(self.width(), self.height() + 22)
 
     def onGenerateCSVBtnClicked(self):
         global playersStrats
