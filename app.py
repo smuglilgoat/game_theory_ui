@@ -5,13 +5,14 @@ import itertools
 import tkinter as tk
 from tkinter import filedialog
 
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtWidgets import QApplication, QDialog, QMainWindow, QPushButton
 from PyQt5.uic import loadUi
 
 numPlayers = 2
-playersStrats = np.array([2, 2])
+StratList = np.array([2, 2])
 stratInputs = []
+data = None
 
 class Window(QMainWindow):
     """Main window."""
@@ -20,6 +21,7 @@ class Window(QMainWindow):
         super().__init__(parent)
         # Load the main GUI
         loadUi("main.ui", self)
+        self.setWindowIcon(QtGui.QIcon("numpy.png"))
         # Connecting buttons with there function
         self.actionNGPure.triggered.connect(self.onNGPureActnTrggrd)
         self.actionRPure.triggered.connect(self.onRPureActnTrggrd)
@@ -72,15 +74,141 @@ class CSVAnalysis(QDialog):
         # Load the dialog's GUI
         loadUi("csvreader.ui", self)
         # Connecting buttons with there function
+        self.StrictDomButton.clicked.connect(self.onStrictDomBtnClicked)
+        self.FaibleDomButton.clicked.connect(self.onFaibleDomBtnClicked)
+        self.ElimStrictDomButton.clicked.connect(self.onElimStrictDomBtnClicked)
+        self.ElimFaibleDomButton.clicked.connect(self.onElimFaibleDomBtnClicked)
+        self.NashButton.clicked.connect(self.onNashBtnClicked)
+        self.ParetoButton.clicked.connect(self.onParetoBtnClicked)
 
     def fileHandler(self, file_path):
+        global  data
         self.textBrowser.append("# Reading file: " + file_path)
         data = pd.read_csv(file_path)
-        dataNPArray = data.to_numpy()
         print(data)
-        print(dataNPArray)
         model = PandasModel(data)
         self.tableView.setModel(model)
+
+    def onStrictDomBtnClicked(self):
+        global  data
+
+        print("# Recherche des Strategies Strictement Dominantes")
+        self.textBrowser.append("# Recherche des Strategies Strictement Dominantes")
+        headers = list(data.head())
+        playersArr = headers[0:(len(headers) // 2)]
+        print("Players: ", playersArr)
+        self.textBrowser.append("Players: " + str(playersArr))
+        playerStrats = {}
+        for e in playersArr:
+            playerStrats[e] = np.unique(list(data[e]))
+        print("Strategies: ", playerStrats)
+        self.textBrowser.append("Strategies: " + str(playerStrats))
+        playerGains = {}
+        for e in playersArr:
+            playerGains[e] = []
+            for s in playerStrats[e]:
+                print("Player ", e, "Strategie ", s)
+                interDF = data[data[e] == int(s)]
+                print(interDF)
+                playerGains[e].append(list(interDF["Gain " + e]))
+                print("#############################")
+        print("Gains: ", playerGains)
+        self.textBrowser.append("Gains: " + str(playerGains))
+        for p in playerGains:
+            for s in playerGains[p]:
+                print("Player ", p, "Strategie ", s)
+                self.textBrowser.append("Player " + str(p) + " Strategie " + str(s))
+                otherStrats = playerGains[p].copy()
+                currentStrat = otherStrats.pop(otherStrats.index(s))
+                print("currentStrat: ", currentStrat)
+                self.textBrowser.append("currentStrat: " + str(currentStrat))
+                print("otherStrats: ", otherStrats)
+                self.textBrowser.append("otherStrats: " + str(otherStrats))
+                dom = True
+                for e in otherStrats:
+                    for i in range(len(currentStrat)):
+                        if e[i] >= currentStrat[i]:
+                            dom = False
+                    if dom == True:
+                        self.textBrowser.append("La Strategie: " + str(currentStrat) + "(" + str(playerGains[p].index(
+                            s)) + ") domine la Strategie: " + str(e) + "(" + str(playerGains[p].index(
+                            e)) + ")")
+                        print("La Strategie: ", currentStrat, "(", playerGains[p].index(s), ") domine la Strategie: ", e,"(", playerGains[p].index(
+                            e), ")")
+                if dom == True:
+                    self.textBrowser.append("La Strategie: " + str(currentStrat) + "(" + str(playerGains[p].index(s)) + ")" + " est une strategie strictement dominante pour le Joueur " + str(p))
+                    print("La Strategie: ", currentStrat, "(", playerGains[p].index(s), ")", " est un strategie strictement dominante pour le Joueur ", p)
+                print("#############################")
+                self.textBrowser.append("#############################")
+        print("Gains: ", playerGains)
+
+    def onFaibleDomBtnClicked(self):
+        global data
+
+        print("# Recherche des Strategies Faiblement Dominantes")
+        self.textBrowser.append("# Recherche des Strategies Faiblement Dominantes")
+        headers = list(data.head())
+        playersArr = headers[0:(len(headers) // 2)]
+        print("Players: ", playersArr)
+        self.textBrowser.append("Players: " + str(playersArr))
+        playerStrats = {}
+        for e in playersArr:
+            playerStrats[e] = np.unique(list(data[e]))
+        print("Strategies: ", playerStrats)
+        self.textBrowser.append("Strategies: " + str(playerStrats))
+        playerGains = {}
+        for e in playersArr:
+            playerGains[e] = []
+            for s in playerStrats[e]:
+                print("Player ", e, "Strategie ", s)
+                interDF = data[data[e] == int(s)]
+                print(interDF)
+                playerGains[e].append(list(interDF["Gain " + e]))
+                print("#############################")
+        print("Gains: ", playerGains)
+        self.textBrowser.append("Gains: " + str(playerGains))
+        for p in playerGains:
+            for s in playerGains[p]:
+                print("Player ", p, "Strategie ", s)
+                self.textBrowser.append("Player " + str(p) + " Strategie " + str(s))
+                copyGains = playerGains[p].copy()
+                currentStrat = copyGains.pop(copyGains.index(s))
+                print("currentStrat: ", currentStrat)
+                self.textBrowser.append("currentStrat: " + str(currentStrat))
+                print("copyGains: ", copyGains)
+                self.textBrowser.append("copyGains: " + str(copyGains))
+                dom = True
+                for e in copyGains:
+                    for i in range(len(currentStrat)):
+                        if e[i] > currentStrat[i]:
+                            dom = False
+                    if dom == True:
+                        self.textBrowser.append("La Strategie: " + str(currentStrat) + "(" + str(playerGains[p].index(
+                            s)) + ") domine la Strategie: " + str(e) + "(" + str(playerGains[p].index(
+                            e)) + ")")
+                        print("La Strategie: ", currentStrat, "(", playerGains[p].index(s), ") domine la Strategie: ", e,"(", playerGains[p].index(
+                            e), ")")
+                if dom == True:
+                    self.textBrowser.append("La Strategie: " + str(currentStrat) + "(" + str(playerGains[p].index(s)) + ")" + " est une strategie faiblement dominante pour le Joueur " + str(p))
+                    print("La Strategie: ", currentStrat, "(", playerGains[p].index(s), ")", "est un strategie faiblement dominante pour le Joueur ", p)
+                print("#############################")
+                self.textBrowser.append("#############################")
+
+    def onElimStrictDomBtnClicked(self):
+        print("onElimStrictDomBtnClicked")
+        self.textBrowser.append("onElimStrictDomBtnClicked")
+
+    def onElimFaibleDomBtnClicked(self):
+        print("onElimFaibleDomBtnClicked")
+        self.textBrowser.append("onElimFaibleDomBtnClicked")
+
+    def onNashBtnClicked(self):
+        print("onNashBtnClicked")
+        self.textBrowser.append("onNashBtnClicked")
+
+    def onParetoBtnClicked(self):
+        print("onParetoBtnClicked")
+        self.textBrowser.append("onParetoBtnClicked")
 
 
 class PlayerStarts(QDialog):
@@ -98,14 +226,14 @@ class PlayerStarts(QDialog):
 
     def onAddPlayerBtnClicked(self):
         global numPlayers
-        global playersStrats
+        global StratList
 
         winWidth = self.frameGeometry().width()
         winHeight = self.frameGeometry().height()
         numPlayers = numPlayers + 1
         print("#    Adding players... ", "(Total =", numPlayers, ")")
-        playersStrats = np.append(playersStrats, 2)
-        print("playersStrats = ", playersStrats)
+        StratList = np.append(StratList, 2)
+        print("playersStrats = ", StratList)
         self.newLabel = QtWidgets.QLabel()
         self.newLabel.setObjectName(("label_" + str(numPlayers + 1)))
         self.newLabel.setText("Player " + str(numPlayers))
@@ -121,21 +249,21 @@ class PlayerStarts(QDialog):
         self.resize(self.width(), self.height() + 22)
 
     def onGenerateCSVBtnClicked(self):
-        global playersStrats
+        global StratList
         global numPlayers
         global stratInputs
 
-        playersStrats = []
+        StratList = []
         for i in range(len(stratInputs)):
-            playersStrats.append(stratInputs[i].text())
-        playersStrats = np.array(playersStrats).astype(int)
+            StratList.append(stratInputs[i].text())
+        StratList = np.array(StratList).astype(int)
 
         print("#    Generating...")
         print("numPlayers = ", numPlayers)
-        print("playersStrats = ", playersStrats)
+        print("playersStrats = ", StratList)
 
         profiles = []
-        for i in playersStrats:
+        for i in StratList:
             a = np.arange(i)
             profiles.append(a)
         result = []
@@ -155,11 +283,11 @@ class PlayerStarts(QDialog):
         resultsDataFrame.to_csv("file.csv", index=None)
 
     def closeEvent(self, event):
-        global playersStrats
+        global StratList
         global numPlayers
         global stratInputs
         numPlayers = 2
-        playersStrats = np.array([2, 2])
+        StratList = np.array([2, 2])
         stratInputs = []
 
 if __name__ == "__main__":

@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>CSV Analysis</string>
   </property>
   <widget class="QTableView" name="tableView">
    <property name="geometry">
@@ -23,38 +23,38 @@
     </rect>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton">
+  <widget class="QPushButton" name="StrictDomButton">
    <property name="geometry">
     <rect>
      <x>10</x>
      <y>380</y>
-     <width>151</width>
+     <width>121</width>
      <height>28</height>
     </rect>
    </property>
    <property name="text">
-    <string>Strictement Dom</string>
+    <string>Strictly Dom Strat</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton_2">
+  <widget class="QPushButton" name="FaibleDomButton">
    <property name="geometry">
     <rect>
-     <x>170</x>
+     <x>140</x>
      <y>380</y>
-     <width>151</width>
+     <width>121</width>
      <height>28</height>
     </rect>
    </property>
    <property name="text">
-    <string>Faiblement Dom</string>
+    <string>Weakly Dom Strat</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton_3">
+  <widget class="QPushButton" name="ElimStrictDomButton">
    <property name="geometry">
     <rect>
-     <x>330</x>
+     <x>270</x>
      <y>380</y>
-     <width>151</width>
+     <width>131</width>
      <height>28</height>
     </rect>
    </property>
@@ -62,12 +62,12 @@
     <string>Elimin Succ Strict</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton_4">
+  <widget class="QPushButton" name="ElimFaibleDomButton">
    <property name="geometry">
     <rect>
-     <x>490</x>
+     <x>410</x>
      <y>380</y>
-     <width>151</width>
+     <width>131</width>
      <height>28</height>
     </rect>
    </property>
@@ -75,12 +75,12 @@
     <string>Elimin Succ Faible</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton_5">
+  <widget class="QPushButton" name="NashButton">
    <property name="geometry">
     <rect>
-     <x>650</x>
+     <x>550</x>
      <y>380</y>
-     <width>151</width>
+     <width>121</width>
      <height>28</height>
     </rect>
    </property>
@@ -96,6 +96,19 @@
      <width>791</width>
      <height>171</height>
     </rect>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="ParetoButton">
+   <property name="geometry">
+    <rect>
+     <x>680</x>
+     <y>380</y>
+     <width>121</width>
+     <height>28</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Equilb Pareto</string>
    </property>
   </widget>
  </widget>
