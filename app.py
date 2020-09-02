@@ -203,8 +203,52 @@ class CSVAnalysis(QDialog):
         self.textBrowser.append("onElimFaibleDomBtnClicked")
 
     def onNashBtnClicked(self):
-        print("onNashBtnClicked")
-        self.textBrowser.append("onNashBtnClicked")
+        global data
+
+        print("# Recherche de l'Equilibre de Nash")
+        self.textBrowser.append("# Recherche de l'Equilibre de Nash")
+        headers = list(data.head())
+        playersArr = headers[0:(len(headers) // 2)]
+        print("Players: ", playersArr)
+        self.textBrowser.append("Players: " + str(playersArr))
+        playerStrats = {}
+        for e in playersArr:
+            playerStrats[e] = np.unique(list(data[e]))
+        print("Strategies: ", playerStrats)
+        self.textBrowser.append("Strategies: " + str(playerStrats))
+        playerStratsDataFrame = {}
+        for p in playersArr:
+            playerStratsDataFrame[p] = []
+            for s in playerStrats[p]:
+                playerStratsDataFrame[p].append(data[data[p] == s].to_numpy())
+        print((playerStratsDataFrame))
+        bestMoves = {}
+        bestMovesStr = {}
+        for p in playerStratsDataFrame:
+            bestMoves[p] = []
+            bestMovesStr[p] = []
+            for i in range(len(playerStratsDataFrame[p][0])):
+                maxGain = playerStratsDataFrame[p][0][i][len(playersArr) + int(p)]
+                strats = playerStratsDataFrame[p][0][i][0:len(playersArr)]
+                for df in playerStratsDataFrame[p]:
+                    if df[i][len(playersArr) + int(p)] > maxGain:
+                        maxGain = df[i][len(playersArr) + int(p)]
+                        strats = df[i][0:len(playersArr)]
+                for df in playerStratsDataFrame[p]:
+                    if df[i][len(playersArr) + int(p)] == maxGain:
+                        bestMoves[p].append(list(df[i][0:len(playersArr)]))
+                        bestMovesStr[p].append(''.join(map(str, list(df[i][0:len(playersArr)]))))
+                print("Player ", p, "Line ", i, "maxGain ", maxGain, " | Played ", strats)
+                bestMoves[p].append(list(strats))
+                bestMovesStr[p].append(''.join(map(str, list(strats))))
+            print("€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€")
+        print("Best Moves: ", bestMoves)
+        print("Best Moves: ", bestMovesStr)
+        print(np.intersect1d(bestMovesStr['0'], bestMovesStr['1']))
+        print(np.intersect1d(bestMovesStr['0'], bestMovesStr['2']))
+        print(np.intersect1d(bestMovesStr['1'], bestMovesStr['2']))
+
+
 
     def onParetoBtnClicked(self):
         print("onParetoBtnClicked")
