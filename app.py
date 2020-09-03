@@ -80,6 +80,7 @@ class CSVAnalysis(QDialog):
         self.ElimFaibleDomButton.clicked.connect(self.onElimFaibleDomBtnClicked)
         self.NashButton.clicked.connect(self.onNashBtnClicked)
         self.ParetoButton.clicked.connect(self.onParetoBtnClicked)
+        self.SecurityButton.clicked.connect(self.onSecurityLevelBtnClicked)
 
     def fileHandler(self, file_path):
         global  data
@@ -140,7 +141,6 @@ class CSVAnalysis(QDialog):
                     print("La Strategie: ", currentStrat, "(", playerGains[p].index(s), ")", " est un strategie strictement dominante pour le Joueur ", p)
                 print("#############################")
                 self.textBrowser.append("#############################")
-        print("Gains: ", playerGains)
 
     def onFaibleDomBtnClicked(self):
         global data
@@ -221,7 +221,8 @@ class CSVAnalysis(QDialog):
             playerStratsDataFrame[p] = []
             for s in playerStrats[p]:
                 playerStratsDataFrame[p].append(data[data[p] == s].to_numpy())
-        print((playerStratsDataFrame))
+        print(playerStratsDataFrame)
+        self.textBrowser.append("Strategies de Chq Joueurs: " + str(playerStratsDataFrame))
         bestMoves = {}
         bestMovesStr = {}
         for p in playerStratsDataFrame:
@@ -239,21 +240,94 @@ class CSVAnalysis(QDialog):
                         bestMoves[p].append(list(df[i][0:len(playersArr)]))
                         bestMovesStr[p].append(''.join(map(str, list(df[i][0:len(playersArr)]))))
                 print("Player ", p, "Line ", i, "maxGain ", maxGain, " | Played ", strats)
+                self.textBrowser.append("Joueur " + str(p) + " maxGain pour le profile " + str(strats) + "=" + str(maxGain))
                 bestMoves[p].append(list(strats))
                 bestMovesStr[p].append(''.join(map(str, list(strats))))
-            print("€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€")
-        print("Best Moves: ", bestMoves)
-        print("Best Moves: ", bestMovesStr)
-        print(np.intersect1d(bestMovesStr['0'], bestMovesStr['1']))
-        print(np.intersect1d(bestMovesStr['0'], bestMovesStr['2']))
-        print(np.intersect1d(bestMovesStr['1'], bestMovesStr['2']))
+            print("#################################")
+            self.textBrowser.append("###################################")
+        print("Best Moves: ", np.unique(bestMovesStr))
+        self.textBrowser.append("Meilleurs Réponses: ")
+        for e in bestMovesStr:
+            self.textBrowser.append("Joueur: " + str(e))
+            self.textBrowser.append("Reponses: " + str(np.unique(bestMovesStr[e])))
+            self.textBrowser.append("###################################")
 
-
+        nashEquilb = []
+        for i in range(len(bestMovesStr['0'])):
+            isNash = True
+            strat = bestMovesStr['0'][i]
+            for p in range(1, len(bestMovesStr)):
+                print(np.intersect1d(strat, bestMovesStr[str(p)]))
+                if np.intersect1d(strat, bestMovesStr[str(p)]).size == 0:
+                    isNash = False
+            if isNash:
+                nashEquilb.append(strat)
+        nashEquilb = np.unique(nashEquilb)
+        print("nashEquilb: ", nashEquilb)
+        self.textBrowser.append("Equilibres de Nash: " + str(nashEquilb))
 
     def onParetoBtnClicked(self):
-        print("onParetoBtnClicked")
-        self.textBrowser.append("onParetoBtnClicked")
+        def ifBetterProfile(profile1, profile2):
+            isBetter = False
+            for i in range(len(profile1)):
+                if profile1[i] < profile2[i]:
+                    return False
+                elif profile1[i] > profile2[i]:
+                    isBetter = True
+            return isBetter
 
+        global data
+
+        print("# Recherche des Optimums de Pareto")
+        self.textBrowser.append("# Recherche des Optimums de Pareto")
+        headers = list(data.head())
+        playersArr = headers[0:(len(headers) // 2)]
+        print("Players: ", playersArr)
+        self.textBrowser.append("Players: " + str(playersArr))
+        playerStrats = {}
+        for e in playersArr:
+            playerStrats[e] = np.unique(list(data[e]))
+        print("Strategies: ", playerStrats)
+        self.textBrowser.append("Strategies: " + str(playerStrats))
+        dataNPArray = data.to_numpy()
+        paretoEfficiency = []
+        for i in range(len(dataNPArray)):
+            isParetoDom = True
+            for j in range(len(dataNPArray)):
+                if ifBetterProfile(dataNPArray[j][len(playersArr):], dataNPArray[i][len(playersArr):]):
+                    isParetoDom = False
+            if isParetoDom:
+                paretoEfficiency.append(list(dataNPArray[i][0:len(playersArr)]))
+        print("paretoEfficiency: ", paretoEfficiency)
+        self.textBrowser.append("Optimum de Pareto: " + str(paretoEfficiency))
+
+    def onSecurityLevelBtnClicked(self):
+        global data
+
+        print("# Recherche des Niveaux de Securité")
+        self.textBrowser.append("# Recherche des Niveaux de Securité")
+        headers = list(data.head())
+        playersArr = headers[0:(len(headers) // 2)]
+        print("Players: ", playersArr)
+        self.textBrowser.append("Players: " + str(playersArr))
+        playerStrats = {}
+        for e in playersArr:
+            playerStrats[e] = np.unique(list(data[e]))
+        print("Strategies: ", playerStrats)
+        self.textBrowser.append("Strategies: " + str(playerStrats))
+        playerStratsDataFrame = {}
+        for p in playersArr:
+            playerStratsDataFrame[p] = []
+            for s in playerStrats[p]:
+                playerStratsDataFrame[p].append(data[data[p] == s])
+        print(playerStratsDataFrame)
+        self.textBrowser.append("Strategies de Chq Joueurs: " + str(playerStratsDataFrame))
+        for p in playerStratsDataFrame:
+            for s in playerStratsDataFrame[p]:
+                print("Player ", p, "Strategy ", np.unique(s[p].to_numpy()), "Security Level ", np.amin(s['Gain ' + p].to_numpy()))
+                self.textBrowser.append("Player " + str(p) + " Strategy " + str(np.unique(s[p].to_numpy())) + " Security Level " + str(np.amin(s['Gain ' + p].to_numpy())))
+            print("##########################")
+            self.textBrowser.append("##########################")
 
 class PlayerStarts(QDialog):
     """PlayerStrat dialog."""
