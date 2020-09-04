@@ -80,7 +80,7 @@
   </action>
   <action name="actionNGMixed">
    <property name="enabled">
-    <bool>false</bool>
+    <bool>true</bool>
    </property>
    <property name="text">
     <string>Mixed</string>
@@ -93,7 +93,7 @@
   </action>
   <action name="actionRMixed">
    <property name="enabled">
-    <bool>false</bool>
+    <bool>true</bool>
    </property>
    <property name="text">
     <string>Mixed</string>

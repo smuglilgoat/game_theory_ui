@@ -25,11 +25,18 @@ class Window(QMainWindow):
         # Connecting buttons with there function
         self.actionNGPure.triggered.connect(self.onNGPureActnTrggrd)
         self.actionRPure.triggered.connect(self.onRPureActnTrggrd)
+        self.actionNGMixed.triggered.connect(self.onNGMixedActnTrggrd)
+        self.actionRMixed.triggered.connect(self.onRMixedActnTrggrd)
 
     # Create a slot for launching the player strategies dialog
     def onNGPureActnTrggrd(self):
         """Launch the player strat dialog."""
         dlg = PlayerStarts(self)
+        dlg.exec()
+
+    def onNGMixedActnTrggrd(self):
+        """Launch the player strat dialog."""
+        dlg = PlayerStartsMixed(self)
         dlg.exec()
 
     def onRPureActnTrggrd(self):
@@ -39,6 +46,16 @@ class Window(QMainWindow):
         file_path = filedialog.askopenfilename()
         print("# Reading file:", file_path)
         dlg = CSVAnalysis(self)
+        dlg.fileHandler(file_path)
+        dlg.exec()
+
+    def onRMixedActnTrggrd(self):
+        root = tk.Tk()
+        root.withdraw()
+
+        file_path = filedialog.askopenfilename()
+        print("# Reading file:", file_path)
+        dlg = CSVAnalysisMixed(self)
         dlg.fileHandler(file_path)
         dlg.exec()
 
@@ -66,6 +83,21 @@ class PandasModel(QtCore.QAbstractTableModel):
         if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
             return self._data.columns[col]
         return None
+
+class CSVAnalysisMixed(QDialog):
+    """CSVAnalysis dialog."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        # Load the dialog's GUI
+        loadUi("csvreaderMixed.ui", self)
+
+    def fileHandler(self, file_path):
+        global  data
+        self.textBrowser.append("# Reading file: " + file_path)
+        data = pd.read_csv(file_path)
+        print(data)
+        model = PandasModel(data)
+        self.tableView.setModel(model)
 
 class CSVAnalysis(QDialog):
     """CSVAnalysis dialog."""
@@ -399,6 +431,60 @@ class PlayerStarts(QDialog):
         resultsDataFrame = resultsDataFrame.reindex(columns=resultsDataFrame.columns.tolist() + headerList)
         print(resultsDataFrame)
         resultsDataFrame.to_csv("file.csv", index=None)
+
+    def closeEvent(self, event):
+        global StratList
+        global numPlayers
+        global stratInputs
+        numPlayers = 2
+        StratList = np.array([2, 2])
+        stratInputs = []
+
+class PlayerStartsMixed(QDialog):
+    """PlayerStartsMixed dialog."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        # Load the dialog's GUI
+        loadUi("inputFormMixed.ui", self)
+        # Connecting buttons with there function
+        self.generateButton.clicked.connect(self.onGenerateCSVBtnClicked)
+        # Inits
+        stratInputs.append(self.playerStrats_1)
+        stratInputs.append(self.playerStrats_2)
+
+    def onGenerateCSVBtnClicked(self):
+        global StratList
+        global numPlayers
+        global stratInputs
+
+        StratList = []
+        for i in range(len(stratInputs)):
+            StratList.append(stratInputs[i].text())
+        StratList = np.array(StratList).astype(int)
+
+        print("#    Generating...")
+        print("numPlayers = ", numPlayers)
+        print("playersStrats = ", StratList)
+
+        profiles = []
+        for i in StratList:
+            a = np.arange(i)
+            profiles.append(a)
+        result = []
+        for element in itertools.product(*profiles):
+            result.append(element)
+        print(np.array(result))
+        headerList = np.arange(numPlayers)
+        headerList = np.array(headerList).astype(str).tolist()
+        print(headerList)
+        for i in range(len(headerList)):
+            headerList[i] = "Gain " + headerList[i]
+        print(headerList)
+        resultsDataFrame = pd.DataFrame(result)
+        print(resultsDataFrame)
+        resultsDataFrame = resultsDataFrame.reindex(columns=resultsDataFrame.columns.tolist() + headerList)
+        print(resultsDataFrame)
+        resultsDataFrame.to_csv("fileMixed.csv", index=None)
 
     def closeEvent(self, event):
         global StratList
