@@ -22,6 +22,7 @@ class Window(QMainWindow):
         # Load the main GUI
         loadUi("main.ui", self)
         self.setWindowIcon(QtGui.QIcon("numpy.png"))
+        self.setStyleSheet(open('style.css').read())
         # Connecting buttons with there function
         self.actionNGPure.triggered.connect(self.onNGPureActnTrggrd)
         self.actionRPure.triggered.connect(self.onRPureActnTrggrd)
@@ -98,6 +99,65 @@ class CSVAnalysisMixed(QDialog):
         print(data)
         model = PandasModel(data)
         self.tableView.setModel(model)
+
+        print("# Recherche de l'Equilibre de Nash")
+        self.textBrowser.append("# Recherche de l'Equilibre de Nash")
+        headers = list(data.head())
+        playersArr = headers[0:(len(headers) // 2)]
+        print("Players: ", playersArr)
+        self.textBrowser.append("Players: " + str(playersArr))
+        playerStrats = {}
+        for e in playersArr:
+            playerStrats[e] = np.unique(list(data[e]))
+        print("Strategies: ", playerStrats)
+        self.textBrowser.append("Strategies: " + str(playerStrats))
+        playerStratsDataFrame = {}
+        for p in playersArr:
+            playerStratsDataFrame[p] = []
+            for s in playerStrats[p]:
+                playerStratsDataFrame[p].append(data[data[p] == s].to_numpy())
+        print(playerStratsDataFrame)
+        self.textBrowser.append("Strategies de Chq Joueurs: " + str(playerStratsDataFrame))
+
+        playersGains = []
+        for p in playerStratsDataFrame:
+            print("Player ", p)
+            playerGains = []
+            i = 0
+            for s in playerStratsDataFrame[p]:
+                print("Strategie ", i, s[:, len(playersArr) + int(p)])
+                i = i + 1;
+                playerGains.append(list(s[:, len(playersArr) + int(p)]))
+            playersGains.append(playerGains)
+        print(playersGains)
+
+        if len(playerStrats['0']) == len(playerStrats['1']) == 2:
+            percentages = []
+            for i in range(2):
+                '''print("Joueur " + str(i))'''
+                nomi = playersGains[i, 1, 1] - playersGains[i, i, 1 - i]
+                denomi = playersGains[i, 0, 0] + playersGains[i, 1, 1] - playersGains[i, 1, 0] - playersGains[i, 0, 1]
+                if denomi == 0:
+                    percentages = None
+                    break
+                p = nomi / denomi
+                if p < 0 or p > 1:
+                    percentages = None
+                    break
+
+                percentages.append([p, (1 - p)])
+                '''print(f"Stratégie: {p}, {1-p}")'''
+
+            if (percentages == None):
+                print("Ce jeu n'a pas d'équilibre de nash")
+            else:
+                print('nash ' + str(percentages))
+
+        if len(playerStrats['0']) == len(playerStrats['1']) == 3:
+            print("3")
+
+
+
 
 class CSVAnalysis(QDialog):
     """CSVAnalysis dialog."""
