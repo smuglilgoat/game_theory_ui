@@ -68,6 +68,7 @@
     </property>
     <addaction name="actionRPure"/>
     <addaction name="actionRMixed"/>
+    <addaction name="actionZeroSumPure"/>
    </widget>
    <addaction name="menuNew_Game"/>
    <addaction name="menuOpen_CSV"/>
@@ -97,6 +98,11 @@
    </property>
    <property name="text">
     <string>Mixed</string>
+   </property>
+  </action>
+  <action name="actionZeroSumPure">
+   <property name="text">
+    <string>Zero Sum (Pure)</string>
    </property>
   </action>
  </widget>

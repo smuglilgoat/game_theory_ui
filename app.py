@@ -29,6 +29,7 @@ class Window(QMainWindow):
         self.actionRPure.triggered.connect(self.onRPureActnTrggrd)
         self.actionNGMixed.triggered.connect(self.onNGMixedActnTrggrd)
         self.actionRMixed.triggered.connect(self.onRMixedActnTrggrd)
+        self.actionZeroSumPure.triggered.connect(self.onZeroSumTrggrd)
 
     # Create a slot for launching the player strategies dialog
     def onNGPureActnTrggrd(self):
@@ -61,6 +62,16 @@ class Window(QMainWindow):
         dlg.fileHandler(file_path)
         dlg.exec()
 
+    def onZeroSumTrggrd(self):
+        root = tk.Tk()
+        root.withdraw()
+
+        file_path = filedialog.askopenfilename()
+        print("# Reading file:", file_path)
+        dlg = CSVAnalysisZero(self)
+        dlg.fileHandler(file_path)
+        dlg.exec()
+
 
 class PandasModel(QtCore.QAbstractTableModel):
     """
@@ -88,6 +99,71 @@ class PandasModel(QtCore.QAbstractTableModel):
             return self._data.columns[col]
         return None
 
+class CSVAnalysisZero(QDialog):
+    """CSVAnalysis dialog."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        # Load the dialog's GUI
+        loadUi("zerosumvalue.ui", self)
+
+    def fileHandler(self, file_path):
+        global data
+        self.textBrowser.append("# Reading file: " + file_path)
+        data = pd.read_csv(file_path)
+        print(data)
+        model = PandasModel(data)
+        self.tableView.setModel(model)
+
+        print("# Recherche de la Valeur du Jeu")
+        self.textBrowser.append("# Recherche de la Valeur du Jeu")
+        headers = list(data.head())
+        playersArr = headers[0:(len(headers) // 2)]
+        print("Players: ", playersArr)
+        self.textBrowser.append("Players: " + str(playersArr))
+        playerStrats = {}
+        for e in playersArr:
+            playerStrats[e] = np.unique(list(data[e]))
+        print("Strategies: ", playerStrats)
+        self.textBrowser.append("Strategies: " + str(playerStrats))
+
+        dataNPArray = data.to_numpy()
+        print(dataNPArray)
+        playersGains = np.zeros([len(playerStrats['0'])] * 3, dtype='int32')
+        for i in range(len(dataNPArray)):
+            for j in range(len(playersArr)):
+                index = list(dataNPArray[i][0:len(playersArr)])
+                index.insert(0, j)
+                playersGains[tuple(index)] = dataNPArray[i][len(playersArr) + j]
+        print("Gains:", playersGains)
+        self.textBrowser.append("Gains: " + str(playersGains))
+
+        self.textBrowser.append("Calcul du Min de chaque Lin")
+        minArr = []
+        for j in range(len(playersGains[0])):
+            temp = []
+            for i in range(len(playersGains[0][0])):
+                temp.append(playersGains[0][j][i])
+            minArr.append(min(temp))
+        print('minArr', minArr)
+        self.textBrowser.append("minArr: " + str(minArr))
+
+        self.textBrowser.append("Calcul du Max de chaque Col")
+        maxArr = []
+        for i in range(len(playersGains[0][0])):
+            temp = []
+            for j in range(len(playersGains[0])):
+                temp.append(playersGains[0][j][i])
+            maxArr.append(max(temp))
+        print('maxArr', maxArr)
+        self.textBrowser.append("maxArr: " + str(maxArr))
+
+        if (max(minArr) == min(maxArr)):
+            print("Value: ", max(minArr))
+            self.textBrowser.append("Valeur: " + str(max(minArr)))
+        else:
+            print("No Value")
+            self.textBrowser.append("Ce jeu n'as pas de valeur en pure")
 
 class CSVAnalysisMixed(QDialog):
     """CSVAnalysis dialog."""
@@ -149,7 +225,7 @@ class CSVAnalysisMixed(QDialog):
                 print('Nash: ', percentages)
                 self.textBrowser.append("Equilibre de Nash: " + str(percentages))
 
-        if len(playerStrats['0']) == len(playerStrats['1']) == 3:
+        if len(playersGains[0]) == len(playersGains[1]) == 3:
             percentages = []
             error = False
 
