@@ -1,12 +1,12 @@
-import sys
-import numpy as np
-import pandas as pd
 import itertools
+import sys
 import tkinter as tk
 from tkinter import filedialog
 
+import numpy as np
+import pandas as pd
 from PyQt5 import QtWidgets, QtCore, QtGui
-from PyQt5.QtWidgets import QApplication, QDialog, QMainWindow, QPushButton
+from PyQt5.QtWidgets import QApplication, QDialog, QMainWindow
 from PyQt5.uic import loadUi
 
 numPlayers = 2
@@ -16,6 +16,7 @@ data = None
 
 class Window(QMainWindow):
     """Main window."""
+
     def __init__(self, parent=None):
         """Initializer."""
         super().__init__(parent)
@@ -60,10 +61,12 @@ class Window(QMainWindow):
         dlg.fileHandler(file_path)
         dlg.exec()
 
+
 class PandasModel(QtCore.QAbstractTableModel):
     """
     Class to populate a table view with a pandas dataframe
     """
+
     def __init__(self, data, parent=None):
         QtCore.QAbstractTableModel.__init__(self, parent)
         self._data = data
@@ -85,15 +88,17 @@ class PandasModel(QtCore.QAbstractTableModel):
             return self._data.columns[col]
         return None
 
+
 class CSVAnalysisMixed(QDialog):
     """CSVAnalysis dialog."""
+
     def __init__(self, parent=None):
         super().__init__(parent)
         # Load the dialog's GUI
         loadUi("csvreaderMixed.ui", self)
 
     def fileHandler(self, file_path):
-        global  data
+        global data
         self.textBrowser.append("# Reading file: " + file_path)
         data = pd.read_csv(file_path)
         print(data)
@@ -111,56 +116,122 @@ class CSVAnalysisMixed(QDialog):
             playerStrats[e] = np.unique(list(data[e]))
         print("Strategies: ", playerStrats)
         self.textBrowser.append("Strategies: " + str(playerStrats))
-        playerStratsDataFrame = {}
-        for p in playersArr:
-            playerStratsDataFrame[p] = []
-            for s in playerStrats[p]:
-                playerStratsDataFrame[p].append(data[data[p] == s].to_numpy())
-        print(playerStratsDataFrame)
-        self.textBrowser.append("Strategies de Chq Joueurs: " + str(playerStratsDataFrame))
 
-        playersGains = []
-        for p in playerStratsDataFrame:
-            print("Player ", p)
-            playerGains = []
-            i = 0
-            for s in playerStratsDataFrame[p]:
-                print("Strategie ", i, s[:, len(playersArr) + int(p)])
-                i = i + 1;
-                playerGains.append(list(s[:, len(playersArr) + int(p)]))
-            playersGains.append(playerGains)
-        print(playersGains)
+        dataNPArray = data.to_numpy()
+        print(dataNPArray)
+        playersGains = np.zeros([len(playerStrats['0'])] * 3, dtype='int32')
+        for i in range(len(dataNPArray)):
+            for j in range(len(playersArr)):
+                index = list(dataNPArray[i][0:len(playersArr)])
+                index.insert(0, j)
+                playersGains[tuple(index)] = dataNPArray[i][len(playersArr) + j]
+        print("Gains:", playersGains)
+        self.textBrowser.append("Gains: " + str(playersGains))
 
-        if len(playerStrats['0']) == len(playerStrats['1']) == 2:
+        if len(playersGains[0]) == len(playersGains[1]) == 2:
+            self.textBrowser.append("Cas à deux strategies:")
             percentages = []
             for i in range(2):
-                '''print("Joueur " + str(i))'''
-                nomi = playersGains[i, 1, 1] - playersGains[i, i, 1 - i]
-                denomi = playersGains[i, 0, 0] + playersGains[i, 1, 1] - playersGains[i, 1, 0] - playersGains[i, 0, 1]
-                if denomi == 0:
+                upper = playersGains[i, 1, 1] - playersGains[i, i, 1 - i]
+                lower = playersGains[i, 0, 0] + playersGains[i, 1, 1] - playersGains[i, 1, 0] - playersGains[i, 0, 1]
+                if lower == 0:
                     percentages = None
                     break
-                p = nomi / denomi
+                p = upper / lower
                 if p < 0 or p > 1:
                     percentages = None
                     break
-
                 percentages.append([p, (1 - p)])
-                '''print(f"Stratégie: {p}, {1-p}")'''
-
             if (percentages == None):
-                print("Ce jeu n'a pas d'équilibre de nash")
+                print("No Nash Equil")
+                self.textBrowser.append("Pas d'Equilibre de Nash")
             else:
-                print('nash ' + str(percentages))
+                print('Nash: ', percentages)
+                self.textBrowser.append("Equilibre de Nash: " + str(percentages))
 
         if len(playerStrats['0']) == len(playerStrats['1']) == 3:
-            print("3")
+            percentages = []
+            error = False
 
+            A1 = playersGains[1, 0, 0] - playersGains[1, 2, 0] - playersGains[1, 0, 1] + playersGains[1, 2, 1]
+            B1 = playersGains[1, 1, 0] - playersGains[1, 2, 0] - playersGains[1, 1, 1] + playersGains[1, 2, 1]
+            C1 = playersGains[1, 2, 1] - playersGains[1, 2, 0]
 
+            A2 = playersGains[1, 0, 1] - playersGains[1, 2, 1] - playersGains[1, 0, 2] + playersGains[1, 2, 2]
+            B2 = playersGains[1, 1, 1] - playersGains[1, 2, 1] - playersGains[1, 1, 2] + playersGains[1, 2, 2]
+            C2 = playersGains[1, 2, 2] - playersGains[1, 2, 1]
+
+            A = np.array([[A1, B1], [A2, B2]])
+            B = np.array([C1, C2])
+
+            try:
+                results = np.linalg.solve(A, B)
+            except np.LinAlgError:
+                error = True
+
+            if (results[0] < 0 or results[1] < 0 or results[0] + results[1] > 1):
+                error = True
+
+            if (error == False):
+                percentages.append([results[0], results[1], 1 - results[0] - results[1]])
+
+            A1 = playersGains[0, 0, 0] - playersGains[0, 0, 2] + playersGains[0, 1, 2] - playersGains[0, 1, 0]
+            B1 = playersGains[0, 0, 1] - playersGains[0, 0, 2] + playersGains[0, 1, 2] - playersGains[0, 1, 1]
+            C1 = playersGains[0, 1, 2] - playersGains[0, 0, 2]
+
+            A2 = playersGains[0, 1, 0] - playersGains[0, 1, 2] - playersGains[0, 2, 0] + playersGains[0, 2, 2]
+            B2 = playersGains[0, 1, 1] - playersGains[0, 1, 2] - playersGains[0, 2, 1] + playersGains[0, 2, 2]
+            C2 = playersGains[0, 2, 2] - playersGains[0, 1, 2]
+
+            A = np.array([[A1, B1], [A2, B2]])
+            B = np.array([C1, C2])
+
+            try:
+                results = np.linalg.solve(A, B)
+            except np.LinAlgError:
+                error = True
+
+            if results[0] < 0 or results[1] < 0 or results[0] + results[1] > 1:
+                error = True
+
+            if (error == False):
+                percentages.append([results[0], results[1], 1 - results[0] - results[1]])
+
+            if (error == False):
+                print("Nash: " + str(percentages))
+                self.textBrowser.append("Equilibre de Nash: " + str(percentages))
+            else:
+                print("No Nash for Supp(3)")
+                self.textBrowser.append("Pas d'Equilibre de Nash pour un Supp(3)")
+                suppPlayerOne = [[0, 1], [0, 2], [1, 2]]
+                suppPlayerTwo = [[0, 1], [0, 2], [1, 2]]
+                for sOne in suppPlayerOne:
+                    for sTwo in suppPlayerTwo:
+                        playersGains = playersGains[np.ix_([0, 1], sOne, sTwo)]
+                        percentages = []
+                        for i in range(2):
+                            upper = playersGains[i, 1, 1] - playersGains[i, i, 1 - i]
+                            lower = playersGains[i, 0, 0] + playersGains[i, 1, 1] - playersGains[i, 1, 0] - \
+                                    playersGains[i, 0, 1]
+                            if lower == 0:
+                                percentages = None
+                                break
+                            p = upper / lower
+                            if p < 0 or p > 1:
+                                percentages = None
+                                break
+                            percentages.append([p, (1 - p)])
+                        if (percentages != None):
+                            print('Nash for Supp(2): ' + str(percentages))
+                            self.textBrowser.append("Equilibre de Nash (Supp = 2): " + str(percentages))
+                            break
+                print("No Nash for Supp(2)")
+                self.textBrowser.append("Pas d'Equilibre de Nash pour un Supp(2)")
 
 
 class CSVAnalysis(QDialog):
     """CSVAnalysis dialog."""
+
     def __init__(self, parent=None):
         super().__init__(parent)
         # Load the dialog's GUI
@@ -175,7 +246,7 @@ class CSVAnalysis(QDialog):
         self.SecurityButton.clicked.connect(self.onSecurityLevelBtnClicked)
 
     def fileHandler(self, file_path):
-        global  data
+        global data
         self.textBrowser.append("# Reading file: " + file_path)
         data = pd.read_csv(file_path)
         print(data)
@@ -183,7 +254,7 @@ class CSVAnalysis(QDialog):
         self.tableView.setModel(model)
 
     def onStrictDomBtnClicked(self):
-        global  data
+        global data
 
         print("# Recherche des Strategies Strictement Dominantes")
         self.textBrowser.append("# Recherche des Strategies Strictement Dominantes")
@@ -226,11 +297,14 @@ class CSVAnalysis(QDialog):
                         self.textBrowser.append("La Strategie: " + str(currentStrat) + "(" + str(playerGains[p].index(
                             s)) + ") domine la Strategie: " + str(e) + "(" + str(playerGains[p].index(
                             e)) + ")")
-                        print("La Strategie: ", currentStrat, "(", playerGains[p].index(s), ") domine la Strategie: ", e,"(", playerGains[p].index(
-                            e), ")")
+                        print("La Strategie: ", currentStrat, "(", playerGains[p].index(s), ") domine la Strategie: ",
+                              e, "(", playerGains[p].index(
+                                e), ")")
                 if dom == True:
-                    self.textBrowser.append("La Strategie: " + str(currentStrat) + "(" + str(playerGains[p].index(s)) + ")" + " est une strategie strictement dominante pour le Joueur " + str(p))
-                    print("La Strategie: ", currentStrat, "(", playerGains[p].index(s), ")", " est un strategie strictement dominante pour le Joueur ", p)
+                    self.textBrowser.append("La Strategie: " + str(currentStrat) + "(" + str(playerGains[p].index(
+                        s)) + ")" + " est une strategie strictement dominante pour le Joueur " + str(p))
+                    print("La Strategie: ", currentStrat, "(", playerGains[p].index(s), ")",
+                          " est un strategie strictement dominante pour le Joueur ", p)
                 print("#############################")
                 self.textBrowser.append("#############################")
 
@@ -278,11 +352,14 @@ class CSVAnalysis(QDialog):
                         self.textBrowser.append("La Strategie: " + str(currentStrat) + "(" + str(playerGains[p].index(
                             s)) + ") domine la Strategie: " + str(e) + "(" + str(playerGains[p].index(
                             e)) + ")")
-                        print("La Strategie: ", currentStrat, "(", playerGains[p].index(s), ") domine la Strategie: ", e,"(", playerGains[p].index(
-                            e), ")")
+                        print("La Strategie: ", currentStrat, "(", playerGains[p].index(s), ") domine la Strategie: ",
+                              e, "(", playerGains[p].index(
+                                e), ")")
                 if dom == True:
-                    self.textBrowser.append("La Strategie: " + str(currentStrat) + "(" + str(playerGains[p].index(s)) + ")" + " est une strategie faiblement dominante pour le Joueur " + str(p))
-                    print("La Strategie: ", currentStrat, "(", playerGains[p].index(s), ")", "est un strategie faiblement dominante pour le Joueur ", p)
+                    self.textBrowser.append("La Strategie: " + str(currentStrat) + "(" + str(playerGains[p].index(
+                        s)) + ")" + " est une strategie faiblement dominante pour le Joueur " + str(p))
+                    print("La Strategie: ", currentStrat, "(", playerGains[p].index(s), ")",
+                          "est un strategie faiblement dominante pour le Joueur ", p)
                 print("#############################")
                 self.textBrowser.append("#############################")
 
@@ -332,7 +409,8 @@ class CSVAnalysis(QDialog):
                         bestMoves[p].append(list(df[i][0:len(playersArr)]))
                         bestMovesStr[p].append(''.join(map(str, list(df[i][0:len(playersArr)]))))
                 print("Player ", p, "Line ", i, "maxGain ", maxGain, " | Played ", strats)
-                self.textBrowser.append("Joueur " + str(p) + " maxGain pour le profile " + str(strats) + "=" + str(maxGain))
+                self.textBrowser.append(
+                    "Joueur " + str(p) + " maxGain pour le profile " + str(strats) + "=" + str(maxGain))
                 bestMoves[p].append(list(strats))
                 bestMovesStr[p].append(''.join(map(str, list(strats))))
             print("#################################")
@@ -416,13 +494,18 @@ class CSVAnalysis(QDialog):
         self.textBrowser.append("Strategies de Chq Joueurs: " + str(playerStratsDataFrame))
         for p in playerStratsDataFrame:
             for s in playerStratsDataFrame[p]:
-                print("Player ", p, "Strategy ", np.unique(s[p].to_numpy()), "Security Level ", np.amin(s['Gain ' + p].to_numpy()))
-                self.textBrowser.append("Player " + str(p) + " Strategy " + str(np.unique(s[p].to_numpy())) + " Security Level " + str(np.amin(s['Gain ' + p].to_numpy())))
+                print("Player ", p, "Strategy ", np.unique(s[p].to_numpy()), "Security Level ",
+                      np.amin(s['Gain ' + p].to_numpy()))
+                self.textBrowser.append(
+                    "Player " + str(p) + " Strategy " + str(np.unique(s[p].to_numpy())) + " Security Level " + str(
+                        np.amin(s['Gain ' + p].to_numpy())))
             print("##########################")
             self.textBrowser.append("##########################")
 
+
 class PlayerStarts(QDialog):
     """PlayerStrat dialog."""
+
     def __init__(self, parent=None):
         super().__init__(parent)
         # Load the dialog's GUI
@@ -500,8 +583,10 @@ class PlayerStarts(QDialog):
         StratList = np.array([2, 2])
         stratInputs = []
 
+
 class PlayerStartsMixed(QDialog):
     """PlayerStartsMixed dialog."""
+
     def __init__(self, parent=None):
         super().__init__(parent)
         # Load the dialog's GUI
@@ -553,6 +638,7 @@ class PlayerStartsMixed(QDialog):
         numPlayers = 2
         StratList = np.array([2, 2])
         stratInputs = []
+
 
 if __name__ == "__main__":
     # Create the application

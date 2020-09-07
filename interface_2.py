@@ -16,7 +16,7 @@ from PyQt5.QtWidgets import QApplication, QDialog, QMainWindow, QPushButton
 from PyQt5.uic import loadUi
 
 num_joueurs = 0
-file_name = 'dataMixedCocky.csv'
+file_name = 'dataMixed2Strat.csv'
 filedata = np.genfromtxt(file_name, delimiter = ',', dtype = 'int32')
 all_strats = ()
 nombre_strat = ()
